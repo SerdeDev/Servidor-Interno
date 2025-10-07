@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model operadoras {
+  nombre       String   @db.Char(120)
+  estado       String   @db.Char(120)
+  municipio    String   @db.Char(120)
+  servicio     String   @db.Char(120)
+  estatus      String?  @db.Char(50)
+  interlocutor BigInt   @id
+  estatusTec   Boolean?
+  estatusComer Boolean?
+  estatusRecau Boolean?
+}
+
+model catastro {
+  id             Int      @id @default(autoincrement())
+  interlocutor   BigInt
+  fecha          DateTime
+  tarifa         String?
+  cuentaContrato BigInt
+  ptoSuministro  BigInt
+  monto          Decimal  @db.Decimal(18, 2)
+  cnae           BigInt?
+  instalacion    String?
+  nombre         String
+  direccion      String
+  cicnor         String
+  cedula         String?
+  fechalta       String
+  fechbaja       String
+  contrato       BigInt
+  telefono1      String?
+  telefono2      String?
+}
+
+model deudaTotal {
+  id               Int      @id @default(autoincrement())
+  interlocutor     BigInt
+  fecha            DateTime
+  interlocutorUser BigInt
+  cuentaContrato   BigInt
+  contrato         BigInt
+  ptoSuministro    BigInt
+  cnae             BigInt
+  nombre           String
+  aforo            Decimal  @db.Decimal(10, 2)
+  total            Decimal  @db.Decimal(10, 2)
+  parroquia        String?
+  direccion        String?
+  cantidadFacturas Int?
+  cedula           String?
+  telfonos         String?
+  retail           String?
+  centro           String?
+  fechaBaja        String?
+
+  @@index([cuentaContrato], map: "idx_deudatotal_cuentacontrato")
+}
+
+model recg {
+  id               Int      @id @default(autoincrement())
+  interlocutor     BigInt
+  fecha            DateTime
+  servicio         String?
+  producto         String?
+  cantidad         Int?
+  numRegistro      Int?
+  monto            Decimal  @db.Decimal(18, 2)
+  iva              Decimal  @db.Decimal(18, 2)
+  montoPlus        Decimal  @db.Decimal(18, 2)
+  ivaPlus          Decimal  @db.Decimal(18, 2)
+  retencionIva     Decimal  @db.Decimal(18, 2)
+  retencionIvaPlus Decimal  @db.Decimal(18, 2)
+  pagoAnticipo     Decimal  @db.Decimal(18, 2)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model sigecom {
+  estadoUser      String? @db.Char(120)
+  municipioUser   String? @db.VarChar(300)
+  parroquiaUser   String? @db.Char(120)
+  direccionUser   String? @db.Char(300)
+  documento       String? @db.Char(20)
+  nombres         String? @db.Char(150)
+  telefono1       String? @db.Char(120)
+  telefono2       String? @db.Char(120)
+  correo          String? @db.Char(120)
+  fechaCreacion   String? @db.Char(120)
+  estadoCC        String? @db.Char(120)
+  municipioCC     String? @db.Char(120)
+  parroquiaCC     String? @db.Char(120)
+  cuenta          String? @db.Char(120)
+  tarifa          String? @db.Char(120)
+  device          String? @db.Char(120)
+  cuentasap       String? @db.Char(120)
+  zona            String? @db.Char(120)
+  tipoCalle       String? @db.Char(120)
+  nombreCalle     String? @db.Char(300)
+  urbanizacion    String? @db.Char(300)
+  puntoSuministro String? @db.Char(300)
+  referencia      String? @db.Char(300)
+  fechaCCuenta    String? @db.Char(120)
+  estatusCC       String? @db.Char(120)
+
+  @@index([cuentasap], map: "idx_sigecom_cuentasap")
+  @@ignore
+}

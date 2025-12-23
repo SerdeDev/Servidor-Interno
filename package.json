@@ -10,9 +10,9 @@
   "author": "Genesis Delgado",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "^6.14.0",
+    "@prisma/client": "^6.19.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "prisma": "^6.14.0"
+    "prisma": "^6.19.0"
   }
 }

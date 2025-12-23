@@ -7,22 +7,23 @@ const prisma = new PrismaClient();
 router.post("/getCatastroCnae", async (req, res) => {
   try {
     const filtros = req.body;
-    console.log("Filtros recibidos:", filtros.estatus.estatusComer);
-    // 1. Obtén los interlocutores únicos
+    console.log("Filtros recibidos:", filtros.estatus);
+
+    // 1. Obtén los interlocutores únicos desde catastro
     const interlocutores = await prisma.catastro.findMany({
       select: { interlocutor: true },
       distinct: ["interlocutor"],
     });
     const interlocutorIds = interlocutores.map((i) => i.interlocutor);
-    let operadoras = [];
-    let operadorasWhere = { interlocutor: { in: interlocutorIds } };
-    if (filtros.estatus.estatusComer === true)
-      operadorasWhere.estatusComer = true;
-    if (filtros.estatus.estatusTec === true) operadorasWhere.estatusTec = true;
-    if (filtros.estatus.estatusRecau === true)
-      operadorasWhere.estatusRecau = true;
 
-    operadoras = await prisma.operadoras.findMany({
+    // 2. Filtra operadoras_mod según estatus
+    let operadorasWhere = { interlocutor: { in: interlocutorIds } };
+    // Estos campos no existen en operadoras_mod; no los añadas.
+    // if (filtros.estatus?.estatusComer) operadorasWhere.estatusComer = true; // ❌
+    // if (filtros.estatus?.estatusTec) operadorasWhere.estatusTec = true;     // ❌
+    // if (filtros.estatus?.estatusRecau) operadorasWhere.estatusRecau = true; // ❌
+
+    const operadoras = await prisma.operadoras_mod.findMany({
       where: operadorasWhere,
       select: {
         interlocutor: true,
@@ -34,7 +35,8 @@ router.post("/getCatastroCnae", async (req, res) => {
     });
 
     const interlocutoresFiltrados = operadoras.map((o) => o.interlocutor);
-    // 2. Haz los conteos por tipo
+
+    // 3. Haz los conteos por tipo
     const [
       residenciales,
       comerciales,
@@ -44,63 +46,40 @@ router.post("/getCatastroCnae", async (req, res) => {
     ] = await Promise.all([
       prisma.catastro.groupBy({
         by: ["interlocutor"],
-
         where: {
-          cnae: {
-            gte: 1000,
-            lte: 1999,
-          },
+          cnae: { gte: 1000, lte: 1999 },
           interlocutor: { in: interlocutoresFiltrados },
         },
-        _count: {
-          cuentaContrato: true,
-        },
+        _count: { cuentaContrato: true },
       }),
       prisma.catastro.groupBy({
         by: ["interlocutor"],
         where: {
-          cnae: {
-            gte: 2000,
-            lte: 2999,
-          },
+          cnae: { gte: 2000, lte: 2999 },
+          interlocutor: { in: interlocutoresFiltrados },
         },
-        _count: {
-          cuentaContrato: true,
-        },
+        _count: { cuentaContrato: true },
       }),
       prisma.catastro.groupBy({
         by: ["interlocutor"],
         where: {
-          cnae: {
-            gte: 3000,
-            lte: 3999,
-          },
+          cnae: { gte: 3000, lte: 3999 },
           interlocutor: { in: interlocutoresFiltrados },
         },
-        _count: {
-          cuentaContrato: true,
-        },
+        _count: { cuentaContrato: true },
       }),
       prisma.catastro.groupBy({
         by: ["interlocutor"],
         where: {
-          cnae: {
-            lt: 1000,
-          },
+          cnae: { lt: 1000 },
           interlocutor: { in: interlocutoresFiltrados },
         },
-        _count: {
-          cuentaContrato: true,
-        },
+        _count: { cuentaContrato: true },
       }),
       prisma.catastro.groupBy({
         by: ["interlocutor"],
-        where: {
-          interlocutor: { in: interlocutoresFiltrados },
-        },
-        _count: {
-          cuentaContrato: true,
-        },
+        where: { interlocutor: { in: interlocutoresFiltrados } },
+        _count: { cuentaContrato: true },
       }),
     ]);
 
@@ -113,31 +92,28 @@ router.post("/getCatastroCnae", async (req, res) => {
         estado: op?.estado,
         municipio: op?.municipio,
         servicio: op?.servicio,
-        RESIDENCIALES: Number(
+        RESIDENCIALES:
           residenciales.find((r) => r.interlocutor === id)?._count
-            .cuentaContrato || 0
-        ),
-        COMERCIALES: Number(
+            .cuentaContrato || 0,
+        COMERCIALES:
           comerciales.find((r) => r.interlocutor === id)?._count
-            .cuentaContrato || 0
-        ),
-        INDUSTRIALES: Number(
+            .cuentaContrato || 0,
+        INDUSTRIALES:
           industriales.find((r) => r.interlocutor === id)?._count
-            .cuentaContrato || 0
-        ),
-        NOFACTURABLE: Number(
+            .cuentaContrato || 0,
+        NOFACTURABLE:
           noFacturable.find((r) => r.interlocutor === id)?._count
-            .cuentaContrato || 0
-        ),
-        TOTAL_USUARIOS: Number(
+            .cuentaContrato || 0,
+        TOTAL_USUARIOS:
           totalUsuarios.find((r) => r.interlocutor === id)?._count
-            .cuentaContrato || 0
-        ),
+            .cuentaContrato || 0,
       };
     });
+
     console.log("Resultado:", resultado);
     res.status(200).json(resultado);
   } catch (error) {
+    console.error("Error en getCatastroCnae:", error);
     res.status(500).json({ error: error.message });
   }
 });

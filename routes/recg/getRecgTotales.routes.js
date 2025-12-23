@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { PrismaClient } from "@prisma/client";
+import pkg from "@prisma/client";
+const { PrismaClient } = pkg;
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -29,8 +30,11 @@ router.post("/getRecgTotales", async (req, res) => {
     if (filtrosLimpios.estatusRecau === true)
       operadorasWhere.estatusRecau = true;
 
-    operadoras = await prisma.operadoras.findMany({
-      where: operadorasWhere,
+    operadoras = await prisma.operadoras_mod.findMany({
+      where: {
+        interlocutor: { in: interlocutorIds },
+        ingreso_date: { lte: new Date(filtros.fechaFin) }, // ingresó antes o igual a fechaFin
+      },
       select: {
         interlocutor: true,
         estado: true,
@@ -48,6 +52,10 @@ router.post("/getRecgTotales", async (req, res) => {
         where: {
           producto,
           interlocutor: { in: interlocutoresFiltrados },
+          fecha: {
+            gte: new Date(filtrosLimpios.fechaInicio),
+            lt: new Date(filtrosLimpios.fechaFin),
+          },
         },
         _sum: { [campo]: true },
       });

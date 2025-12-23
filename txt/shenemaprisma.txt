@@ -106,7 +106,7 @@ model sigecom {
   cuenta          String? @db.Char(120)
   tarifa          String? @db.Char(120)
   device          String? @db.Char(120)
-  cuentasap       String? @db.Char(120)
+  cuentasap       String @id @db.Char(120)
   zona            String? @db.Char(120)
   tipoCalle       String? @db.Char(120)
   nombreCalle     String? @db.Char(300)
@@ -117,7 +117,6 @@ model sigecom {
   estatusCC       String? @db.Char(120)
 
   @@index([correo], map: "idx_sigecom_correo")
-  @@ignore
 }
 
 model acceso_bajas {
@@ -213,29 +212,4 @@ model operadoras_mod {
   interlocutor BigInt   @id(map: "operadoras_copy1_pkey")
   ingreso_date DateTime @db.Date
   baja_date    DateTime @db.Date
-}
-
-model employees_cargos {
-  employees_cargos_id      Int                  @id(map: "cargos_pkey") @default(autoincrement())
-  employees_gerencia_id    Int?
-  employees_cargos_descrip String?
-  employees_gerencias      employees_gerencias? @relation(fields: [employees_gerencia_id], references: [employees_gerencias_id], onDelete: NoAction, map: "fk_employees_gerencias_id")
-  employees_user           employees_user[]
-}
-
-model employees_gerencias {
-  employees_gerencias_id      Int                @id(map: "gerencias_pkey") @unique(map: "unique_employees_gerencias_id") @default(autoincrement())
-  employees_gerencias_descrip String
-  employees_cargos            employees_cargos[]
-}
-
-model employees_user {
-  employees_user_id        Int               @id(map: "user_pkey") @unique(map: "unique_employees_user_id") @default(autoincrement())
-  employees_user_name      String
-  employees_user_surname   String?
-  employees_user_birthdate DateTime          @db.Date
-  employees_user_extension Int?
-  employees_user_correo    String?
-  employees_cargo_id       Int?
-  employees_cargos         employees_cargos? @relation(fields: [employees_cargo_id], references: [employees_cargos_id], onDelete: Cascade, map: "usuario_cargo")
 }

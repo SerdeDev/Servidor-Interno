@@ -8,14 +8,15 @@ router.post("/getAnticipos", async (req, res) => {
   try {
     const filtros = req.body;
     console.log("Filtros recibidos:", filtros);
+
     async function obtenerTotales(tipo) {
       // Paso 1: Filtrar recaudaciones del tipo correspondiente
       const recaudaciones = await prisma.recaudacion.findMany({
         where: {
-          operadoras_recaudacion: { tipo }, // accediendo al tipo desde relación
+          operadoras_recaudacion_mod: { tipo }, // relación actualizada
         },
         include: {
-          operadoras_recaudacion: true,
+          operadoras_recaudacion_mod: true, // incluir relación actualizada
         },
       });
 
@@ -23,7 +24,7 @@ router.post("/getAnticipos", async (req, res) => {
       const agrupado = new Map();
 
       for (const r of recaudaciones) {
-        const clave = `${r.operadoras_recaudacion.operadoraMun}|${r.nombreOperadora}|${r.servicio}`;
+        const clave = `${r.operadoras_recaudacion_mod.operadoraMun}|${r.nombreOperadora}|${r.servicio}`;
         const actual = agrupado.get(clave) ?? { total: 0, tipo: tipo };
         actual.total += Number(r.total);
         agrupado.set(clave, actual);
@@ -56,9 +57,11 @@ router.post("/getAnticipos", async (req, res) => {
 
       return resultadoFinal;
     }
+
+    // Paso 4: Calcular anticipos
     const anticipos = await prisma.recaudacion.aggregate({
       where: {
-        operadoras_recaudacion: { tipo: "2" },
+        operadoras_recaudacion_mod: { tipo: "2" }, // relación actualizada
       },
       _sum: { total: true },
     });
@@ -72,6 +75,7 @@ router.post("/getAnticipos", async (req, res) => {
       total_porcent: Number((anticipos._sum.total * 0.85).toFixed(2)),
     };
 
+    // Paso 5: Unir todos los resultados
     const todos = [
       ...(await obtenerTotales("1")),
       ...(await obtenerTotales("2")),
@@ -83,9 +87,9 @@ router.post("/getAnticipos", async (req, res) => {
     ];
 
     console.log("Datos totales:", todos);
-
     res.status(200).json(todos);
   } catch (error) {
+    console.error("Error en /getAnticipos:", error);
     res.status(500).json({ error: error.message });
   }
 });

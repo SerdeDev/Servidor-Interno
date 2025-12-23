@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { PrismaClient } from "@prisma/client";
+import pkg from "@prisma/client";
+const { PrismaClient } = pkg;
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -15,6 +16,33 @@ router.post("/getRecgTotalesOperadoras", async (req, res) => {
       )
     );
 
+    // 📌 Construir rango de fechas
+    let rangoFechas = {};
+    if (filtrosLimpios.mesSeleccionado) {
+      // Ejemplo: "2025-12"
+      const [año, mes] = filtrosLimpios.mesSeleccionado.split("-");
+      const fechaInicio = new Date(`${año}-${mes}-01T00:00:00Z`);
+      const fechaFin = new Date(fechaInicio);
+      fechaFin.setMonth(fechaFin.getMonth() + 1); // primer día del siguiente mes
+
+      console.log("Filtro de mes:", { fechaInicio, fechaFin });
+
+      rangoFechas = {
+        fecha: {
+          gte: fechaInicio,
+          lt: fechaFin,
+        },
+      };
+    } else if (filtrosLimpios.fechaInicio && filtrosLimpios.fechaFin) {
+      // Si vienen fechas explícitas
+      rangoFechas = {
+        fecha: {
+          gte: new Date(filtrosLimpios.fechaInicio),
+          lt: new Date(filtrosLimpios.fechaFin),
+        },
+      };
+    }
+
     // Obtener interlocutores únicos desde recg
     const interlocutoresRecg = await prisma.recg.findMany({
       select: { interlocutor: true },
@@ -26,26 +54,17 @@ router.post("/getRecgTotalesOperadoras", async (req, res) => {
     // Obtener operadoras filtradas
     let operadorasWhere = { interlocutor: { in: interlocutorIds } };
 
-    if (
-      filtrosLimpios.estatusComer === true ||
-      filtrosLimpios.estatusTec === true ||
-      filtrosLimpios.estatusRecau === true
-    ) {
-      if (filtrosLimpios.estatusComer === true)
-        operadorasWhere["estatusComer"] = true;
-      if (filtrosLimpios.estatusTec === true)
-        operadorasWhere["estatusTec"] = true;
-      if (filtrosLimpios.estatusRecau === true)
-        operadorasWhere["estatusRecau"] = true;
-    }
-
-    const operadoras = await prisma.operadoras.findMany({
+    const operadoras = await prisma.operadoras_mod.findMany({
       where: operadorasWhere,
     });
+
+    // 📌 Aplicar filtro de fechas en recg
+    console.log("Aplicando filtro:", rangoFechas);
 
     const registrosRecg = await prisma.recg.findMany({
       where: {
         interlocutor: { in: operadoras.map((o) => o.interlocutor) },
+        ...rangoFechas,
       },
     });
 
@@ -89,14 +108,18 @@ router.post("/getRecgTotalesOperadoras", async (req, res) => {
 
       if (producto === "FACTURAS GENERADAS") {
         resultado[nombre].CANTIDAD_FAGE += rec.cantidad || 0;
-        if (servicio === "Aseo") resultado[nombre].FAGE_ASEO += montoTotal;
-        if (servicio === "Relleno") resultado[nombre].FAGE_RELL += montoTotal;
+        if (servicio && servicio.toUpperCase().includes("ASEO"))
+          resultado[nombre].FAGE_ASEO += montoTotal;
+        if (servicio && servicio.toUpperCase().includes("RELL"))
+          resultado[nombre].FAGE_RELL += montoTotal;
       }
 
       if (producto === "FACTURAS COBRADAS") {
         resultado[nombre].CANTIDAD_FACO += rec.cantidad || 0;
-        if (servicio === "Aseo") resultado[nombre].FACO_ASEO += montoTotal;
-        if (servicio === "Relleno") resultado[nombre].FACO_RELL += montoTotal;
+        if (servicio && servicio.toUpperCase().includes("ASEO"))
+          resultado[nombre].FACO_ASEO += montoTotal;
+        if (servicio && servicio.toUpperCase().includes("RELL"))
+          resultado[nombre].FACO_RELL += montoTotal;
       }
 
       resultado[nombre].TOTAL += montoTotal;

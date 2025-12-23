@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { PrismaClient } from "@prisma/client";
+import pkg from "@prisma/client";
+const { PrismaClient } = pkg;
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -30,11 +31,9 @@ router.post("/updateRecaudacion", async (req, res) => {
       )
     );
     if (faltantes.length > 0) {
-      return res
-        .status(400)
-        .json({
-          error: "Algunos objetos no tienen todos los campos requeridos.",
-        });
+      return res.status(400).json({
+        error: "Algunos objetos no tienen todos los campos requeridos.",
+      });
     }
 
     // Opcional: convertir fecha a formato ISO si viene como dd.mm.yyyy

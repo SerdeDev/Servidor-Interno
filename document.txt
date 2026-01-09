@@ -1,0 +1,26 @@
+Servidor-Interno/
+├── node_modules/              # Dependencias instaladas
+├── prisma/                    # Definición de modelos y migraciones
+│   └── schema.prisma
+├── routes/                    # Rutas de cada módulo
+│   ├── auth/                  # 🔑 Nuevo: login y autenticación
+│   │   └── index.js
+│   ├── catastro/
+│   ├── deuda/
+│   ├── operadoras/
+│   ├── recaudacion/
+│   ├── recg/
+│   └── sigecom/
+├── middlewares/               # ⚙️ Nuevo: lógica común
+│   ├── auth.js                # Middleware JWT y roles
+│   └── logger.js              # Logs de acceso y auditoría
+├── config/                    # ⚙️ Nuevo: configuración central
+│   ├── prismaClient.js        # Cliente Prisma
+│   └── env.js                 # Carga de variables de entorno
+├── utils/                     # 🔧 Nuevo: funciones auxiliares
+│   ├── hash.js                # Encriptación de contraseñas
+│   └── validators.js          # Validaciones comunes
+├── txt/                       # Archivos auxiliares / pruebas
+├── index.js                   # Punto de entrada del servidor
+├── package.json
+└── .env                       # Variables de entorno (ignorado en git)

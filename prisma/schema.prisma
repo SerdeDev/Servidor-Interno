@@ -206,13 +206,15 @@ model historialEnviosDetalle {
 }
 
 model operadoras_mod {
-  nombre       String   @db.Char(120)
-  estado       String   @db.Char(120)
-  municipio    String   @db.Char(120)
-  servicio     String   @db.Char(120)
-  interlocutor BigInt   @id(map: "operadoras_copy1_pkey")
-  ingreso_date DateTime @db.Date
-  baja_date    DateTime @db.Date
+  nombre                String                  @db.Char(120)
+  estado                String                  @db.Char(120)
+  municipio             String                  @db.Char(120)
+  servicio              String                  @db.Char(120)
+  interlocutor          BigInt                  @id(map: "operadoras_copy1_pkey")
+  ingreso_date          DateTime                @db.Date
+  baja_date             DateTime                @db.Date
+  recau_zconsulta       recau_zconsulta[]
+  recau_zconsulta_copy1 recau_zconsulta_copy1[]
 }
 
 model employees_cargos {
@@ -237,5 +239,52 @@ model employees_user {
   employees_user_extension Int?
   employees_user_correo    String?
   employees_cargo_id       Int?
+  employees_user_password  String?           @db.VarChar(20)
   employees_cargos         employees_cargos? @relation(fields: [employees_cargo_id], references: [employees_cargos_id], onDelete: Cascade, map: "usuario_cargo")
+}
+
+model recau_zconsulta {
+  recau_zconsulta_id                 BigInt         @id(map: "unique_recau_zconsulta_id") @default(autoincrement())
+  recau_zconsulta_fecha              DateTime       @db.Date
+  interlocutor                       BigInt
+  recau_zconsulta_pagoanticip        Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_aseo               Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_aseoplus           Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_iva_aseoplus       Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_iva_aseo           Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_medioambiental     Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_iva_medioambiental Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_serv_esp           Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_iva_serv_esp       Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_serv_amb           Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_iva_serv_amb       Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_pagoanticip_2      Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_relleno            Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_iva_relleno        Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_total              Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_vacio              Decimal        @db.Decimal(10, 2)
+  operadoras_mod                     operadoras_mod @relation(fields: [interlocutor], references: [interlocutor], onDelete: NoAction, map: "fk_interlocutor")
+}
+
+model recau_zconsulta_copy1 {
+  recau_zconsulta_id                 BigInt         @id @default(autoincrement())
+  recau_zconsulta_fecha              DateTime       @db.Date
+  interlocutor                       BigInt
+  recau_zconsulta_pagoanticip        Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_aseo               Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_aseoplus           Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_iva_aseoplus       Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_iva_aseo           Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_medioambiental     Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_iva_medioambiental Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_serv_esp           Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_iva_serv_esp       Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_serv_amb           Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_iva_serv_amb       Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_pagoanticip_2      Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_relleno            Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_iva_relleno        Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_total              Decimal        @default(0) @db.Decimal(10, 2)
+  recau_zconsulta_vacio              Decimal        @db.Decimal(10, 2)
+  operadoras_mod                     operadoras_mod @relation(fields: [interlocutor], references: [interlocutor], onDelete: NoAction)
 }

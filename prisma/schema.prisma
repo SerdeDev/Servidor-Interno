@@ -24,7 +24,7 @@ model operadoras {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model catastro {
-  id             Int      @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   interlocutor   BigInt
   fecha          DateTime
   tarifa         String?
@@ -43,7 +43,7 @@ model catastro {
   telefono1      String?
   telefono2      String?
 
-  @@ignore
+
 }
 
 model deudaTotal {

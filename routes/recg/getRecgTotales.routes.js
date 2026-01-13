@@ -21,19 +21,11 @@ router.post("/getRecgTotales", async (req, res) => {
 
     const interlocutorIds = interlocutoresRecg.map((i) => i.interlocutor);
 
-    // 1. Combina los filtros de operadoras
-    let operadoras = [];
-    let operadorasWhere = { interlocutor: { in: interlocutorIds } };
-    if (filtrosLimpios.estatusComer === true)
-      operadorasWhere.estatusComer = true;
-    if (filtrosLimpios.estatusTec === true) operadorasWhere.estatusTec = true;
-    if (filtrosLimpios.estatusRecau === true)
-      operadorasWhere.estatusRecau = true;
-
-    operadoras = await prisma.operadoras_mod.findMany({
+    // 1. Ya no filtramos por estatus, obtenemos todas las operadoras válidas
+    const operadoras = await prisma.operadoras_mod.findMany({
       where: {
         interlocutor: { in: interlocutorIds },
-        ingreso_date: { lte: new Date(filtros.fechaFin) }, // ingresó antes o igual a fechaFin
+        ingreso_date: { lte: new Date(filtros.fechaFin) },
       },
       select: {
         interlocutor: true,
@@ -61,41 +53,13 @@ router.post("/getRecgTotales", async (req, res) => {
       });
 
     const [
-      cantidadFage,
-      montoFage,
-      ivaFage,
-      montoPlusFage,
-      ivaPlusFage,
-      cantidadFaga,
-      montoFaga,
-      ivaFaga,
-      montoPlusFaga,
-      ivaPlusFaga,
-      cantidadFaco,
-      montoFaco,
-      ivaFaco,
-      montoPlusFaco,
-      ivaPlusFaco,
-      cantidadFcoa,
-      montoFcoa,
-      ivaFcoa,
-      montoPlusFcoa,
-      ivaPlusFcoa,
-      cantidadCoar,
-      montoCoar,
-      ivaCoar,
-      montoPlusCoar,
-      ivaPlusCoar,
-      cantidadCoaa,
-      montoCoaa,
-      ivaCoaa,
-      montoPlusCoaa,
-      ivaPlusCoaa,
-      cantidadFacoa,
-      montoFacoa,
-      ivaFacoa,
-      montoPlusFacoa,
-      ivaPlusFacoa,
+      cantidadFage, montoFage, ivaFage, montoPlusFage, ivaPlusFage,
+      cantidadFaga, montoFaga, ivaFaga, montoPlusFaga, ivaPlusFaga,
+      cantidadFaco, montoFaco, ivaFaco, montoPlusFaco, ivaPlusFaco,
+      cantidadFcoa, montoFcoa, ivaFcoa, montoPlusFcoa, ivaPlusFcoa,
+      cantidadCoar, montoCoar, ivaCoar, montoPlusCoar, ivaPlusCoar,
+      cantidadCoaa, montoCoaa, ivaCoaa, montoPlusCoaa, ivaPlusCoaa,
+      cantidadFacoa, montoFacoa, ivaFacoa, montoPlusFacoa, ivaPlusFacoa,
     ] = await Promise.all([
       makeGroupBy("FACTURAS GENERADAS", "cantidad"),
       makeGroupBy("FACTURAS GENERADAS", "monto"),
@@ -134,338 +98,112 @@ router.post("/getRecgTotales", async (req, res) => {
       makeGroupBy("FACTURAS ASOCIADAS A COBROS ANTICIPADOS", "ivaPlus"),
     ]);
 
+    // Función para dar formato: 1234.5 -> 1.234,50
+    const formatear = (valor) =>
+      new Intl.NumberFormat('de-DE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(valor || 0);
+
     const resultado = interlocutoresFiltrados.map((interlocutor) => {
       const op = operadoras.find((o) => o.interlocutor === interlocutor);
-      const incluirUbicacion = filtrosLimpios.estatusComer
-        ? {
-            ESTADO: op.estado,
-            MUNICIPIO: op.municipio,
-          }
-        : {};
-      const incluirCantidad = filtrosLimpios.estatusRecau
-        ? {
-            CANTIDAD_FAGE:
-              Number(
-                cantidadFage.find((r) => r.interlocutor === interlocutor)?._sum
-                  ?.cantidad
-              ) || 0,
-            CANTIDAD_FAGA:
-              Number(
-                cantidadFaga.find((r) => r.interlocutor === interlocutor)?._sum
-                  ?.cantidad
-              ) || 0,
-            CANTIDAD_FACO:
-              Number(
-                cantidadFaco.find((r) => r.interlocutor === interlocutor)?._sum
-                  ?.cantidad
-              ) || 0,
-            CANTIDAD_FCOA:
-              Number(
-                cantidadFcoa.find((r) => r.interlocutor === interlocutor)?._sum
-                  ?.cantidad
-              ) || 0,
-            CANTIDAD_COAR:
-              Number(
-                cantidadCoar.find((r) => r.interlocutor === interlocutor)?._sum
-                  ?.cantidad
-              ) || 0,
-            CANTIDAD_COAA:
-              Number(
-                cantidadCoaa.find((r) => r.interlocutor === interlocutor)?._sum
-                  ?.cantidad
-              ) || 0,
-            CANTIDAD_FACOA:
-              Number(
-                cantidadFacoa.find((r) => r.interlocutor === interlocutor)?._sum
-                  ?.cantidad
-              ) || 0,
-          }
-        : {};
+
+      // Eliminadas las variables de "incluirUbicacion" e "incluirCantidad" para que siempre se incluyan
       return {
         INTERLOCUTOR: interlocutor,
         OPERADORA: op.nombre,
-        ...incluirUbicacion,
-        CANTIDADFAGE:
-          Number(
-            cantidadFage.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.cantidad
-          ) || 0,
-        MONTOFAGE:
-          Number(
-            montoFage.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ).toFixed(2) || 0,
-        IVAFAGE:
-          Number(
-            ivaFage.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-          ).toFixed(2) || 0,
-        MONTOPLUSFAGE:
-          Number(
-            montoPlusFage.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.montoPlus
-          ).toFixed(2) || 0,
-        IVAPLUSFAGE:
-          Number(
-            ivaPlusFage.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.ivaPlus
-          ).toFixed(2) || 0,
-        ...incluirCantidad.CANTIDAD_FAGE,
+        ESTADO: op.estado,
+        MUNICIPIO: op.municipio,
+
+        // Bloque FAGE
+        CANTIDADFAGE: Number(cantidadFage.find((r) => r.interlocutor === interlocutor)?._sum?.cantidad) || 0,
+        MONTOFAGE: Number(montoFage.find((r) => r.interlocutor === interlocutor)?._sum?.monto).toFixed(2) || 0,
+        IVAFAGE: Number(ivaFage.find((r) => r.interlocutor === interlocutor)?._sum?.iva).toFixed(2) || 0,
+        MONTOPLUSFAGE: Number(montoPlusFage.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus).toFixed(2) || 0,
+        IVAPLUSFAGE: Number(ivaPlusFage.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus).toFixed(2) || 0,
         TOTALFAGE: Number(
-          (Number(
-            montoFage.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ) || 0) +
-            (Number(
-              ivaFage.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-            ) || 0) +
-            (Number(
-              montoPlusFage.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.montoPlus
-            ) || 0) +
-            (Number(
-              ivaPlusFage.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.ivaPlus
-            ) || 0)
+          (Number(montoFage.find((r) => r.interlocutor === interlocutor)?._sum?.monto) || 0) +
+          (Number(ivaFage.find((r) => r.interlocutor === interlocutor)?._sum?.iva) || 0) +
+          (Number(montoPlusFage.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus) || 0) +
+          (Number(ivaPlusFage.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus) || 0)
         ).toFixed(2),
-        CANTIDADFAGA:
-          Number(
-            cantidadFaga.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.cantidad
-          ).toFixed(2) || 0,
-        MONTOFAGA:
-          Number(
-            montoFaga.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ).toFixed(2) || 0,
-        IVAFAGA:
-          Number(
-            ivaFaga.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-          ).toFixed(2) || 0,
-        MONTOPLUSFAGA:
-          Number(
-            montoPlusFaga.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.montoPlus
-          ).toFixed(2) || 0,
-        IVAPLUSFAGA:
-          Number(
-            ivaPlusFaga.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.ivaPlus
-          ).toFixed(2) || 0,
-        ...incluirCantidad.CANTIDAD_FAGA,
+
+        // Bloque FAGA
+        CANTIDADFAGA: Number(cantidadFaga.find((r) => r.interlocutor === interlocutor)?._sum?.cantidad).toFixed(2) || 0,
+        MONTOFAGA: Number(montoFaga.find((r) => r.interlocutor === interlocutor)?._sum?.monto).toFixed(2) || 0,
+        IVAFAGA: Number(ivaFaga.find((r) => r.interlocutor === interlocutor)?._sum?.iva).toFixed(2) || 0,
+        MONTOPLUSFAGA: Number(montoPlusFaga.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus).toFixed(2) || 0,
+        IVAPLUSFAGA: Number(ivaPlusFaga.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus).toFixed(2) || 0,
         TOTALFAGA: Number(
-          (Number(
-            montoFaga.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ) || 0) +
-            (Number(
-              ivaFaga.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-            ) || 0) +
-            (Number(
-              montoPlusFaga.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.montoPlus
-            ) || 0) +
-            (Number(
-              ivaPlusFaga.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.ivaPlus
-            ) || 0)
+          (Number(montoFaga.find((r) => r.interlocutor === interlocutor)?._sum?.monto) || 0) +
+          (Number(ivaFaga.find((r) => r.interlocutor === interlocutor)?._sum?.iva) || 0) +
+          (Number(montoPlusFaga.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus) || 0) +
+          (Number(ivaPlusFaga.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus) || 0)
         ).toFixed(2),
 
-        CANTIDADFACO:
-          Number(
-            cantidadFaco.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.cantidad
-          ).toFixed(2) || 0,
-        MONTOFACO:
-          Number(
-            montoFaco.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ).toFixed(2) || 0,
-        IVAFACO:
-          Number(
-            ivaFaco.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-          ).toFixed(2) || 0,
-        MONTOPLUSFACO:
-          Number(
-            montoPlusFaco.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.montoPlus
-          ).toFixed(2) || 0,
-        IVAPLUSFACO:
-          Number(
-            ivaPlusFaco.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.ivaPlus
-          ).toFixed(2) || 0,
-        ...incluirCantidad.CANTIDAD_FACO,
+        // Bloque FACO
+        CANTIDADFACO: Number(cantidadFaco.find((r) => r.interlocutor === interlocutor)?._sum?.cantidad).toFixed(2) || 0,
+        MONTOFACO: Number(montoFaco.find((r) => r.interlocutor === interlocutor)?._sum?.monto).toFixed(2) || 0,
+        IVAFACO: Number(ivaFaco.find((r) => r.interlocutor === interlocutor)?._sum?.iva).toFixed(2) || 0,
+        MONTOPLUSFACO: Number(montoPlusFaco.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus).toFixed(2) || 0,
+        IVAPLUSFACO: Number(ivaPlusFaco.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus).toFixed(2) || 0,
         TOTALFACO: Number(
-          (Number(
-            montoFaco.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ) || 0) +
-            (Number(
-              ivaFaco.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-            ) || 0) +
-            (Number(
-              montoPlusFaco.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.montoPlus
-            ) || 0) +
-            (Number(
-              ivaPlusFaco.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.ivaPlus
-            ) || 0)
+          (Number(montoFaco.find((r) => r.interlocutor === interlocutor)?._sum?.monto) || 0) +
+          (Number(ivaFaco.find((r) => r.interlocutor === interlocutor)?._sum?.iva) || 0) +
+          (Number(montoPlusFaco.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus) || 0) +
+          (Number(ivaPlusFaco.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus) || 0)
         ).toFixed(2),
 
-        CANTIDADFCOA:
-          Number(
-            cantidadFcoa.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.cantidad
-          ).toFixed(2) || 0,
-        MONTOFCOA:
-          Number(
-            montoFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ).toFixed(2) || 0,
-        IVAFCOA:
-          Number(
-            ivaFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-          ).toFixed(2) || 0,
-        MONTOPLUSFCOA:
-          Number(
-            montoPlusFcoa.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.montoPlus
-          ).toFixed(2) || 0,
-        IVAPLUSFCOA:
-          Number(
-            ivaPlusFcoa.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.ivaPlus
-          ).toFixed(2) || 0,
-        ...incluirCantidad.CANTIDAD_FCOA,
+        // Bloque FCOA
+        CANTIDADFCOA: Number(cantidadFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.cantidad).toFixed(2) || 0,
+        MONTOFCOA: Number(montoFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.monto).toFixed(2) || 0,
+        IVAFCOA: Number(ivaFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.iva).toFixed(2) || 0,
+        MONTOPLUSFCOA: Number(montoPlusFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus).toFixed(2) || 0,
+        IVAPLUSFCOA: Number(ivaPlusFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus).toFixed(2) || 0,
         TOTALFCOA: Number(
-          (Number(
-            montoFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ) || 0) +
-            (Number(
-              ivaFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-            ) || 0) +
-            (Number(
-              montoPlusFcoa.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.montoPlus
-            ) || 0) +
-            (Number(
-              ivaPlusFcoa.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.ivaPlus
-            ) || 0)
+          (Number(montoFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.monto) || 0) +
+          (Number(ivaFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.iva) || 0) +
+          (Number(montoPlusFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus) || 0) +
+          (Number(ivaPlusFcoa.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus) || 0)
         ).toFixed(2),
-        CANTIDADCOAR:
-          Number(
-            cantidadCoar.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.cantidad
-          ).toFixed(2) || 0,
-        MONTOCOAR:
-          Number(
-            montoCoar.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ).toFixed(2) || 0,
-        IVACOAR:
-          Number(
-            ivaCoar.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-          ).toFixed(2) || 0,
-        MONTOPLUSCOAR:
-          Number(
-            montoPlusCoar.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.montoPlus
-          ).toFixed(2) || 0,
-        IVAPLUSCOAR:
-          Number(
-            ivaPlusCoar.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.ivaPlus
-          ).toFixed(2) || 0,
-        ...incluirCantidad.CANTIDAD_COAR,
+
+        // Bloque COAR
+        CANTIDADCOAR: Number(cantidadCoar.find((r) => r.interlocutor === interlocutor)?._sum?.cantidad).toFixed(2) || 0,
+        MONTOCOAR: Number(montoCoar.find((r) => r.interlocutor === interlocutor)?._sum?.monto).toFixed(2) || 0,
+        IVACOAR: Number(ivaCoar.find((r) => r.interlocutor === interlocutor)?._sum?.iva).toFixed(2) || 0,
+        MONTOPLUSCOAR: Number(montoPlusCoar.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus).toFixed(2) || 0,
+        IVAPLUSCOAR: Number(ivaPlusCoar.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus).toFixed(2) || 0,
         TOTALCOAR: Number(
-          (Number(
-            montoCoar.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ) || 0) +
-            (Number(
-              ivaCoar.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-            ) || 0) +
-            (Number(
-              montoPlusCoar.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.montoPlus
-            ) || 0) +
-            (Number(
-              ivaPlusCoar.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.ivaPlus
-            ) || 0)
+          (Number(montoCoar.find((r) => r.interlocutor === interlocutor)?._sum?.monto) || 0) +
+          (Number(ivaCoar.find((r) => r.interlocutor === interlocutor)?._sum?.iva) || 0) +
+          (Number(montoPlusCoar.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus) || 0) +
+          (Number(ivaPlusCoar.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus) || 0)
         ).toFixed(2),
-        CANTIDADCOAA:
-          Number(
-            cantidadCoaa.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.cantidad
-          ).toFixed(2) || 0,
-        MONTOCOAA:
-          Number(
-            montoCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ).toFixed(2) || 0,
-        IVACOAA:
-          Number(
-            ivaCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-          ).toFixed(2) || 0,
-        MONTOPLUSCOAA:
-          Number(
-            montoPlusCoaa.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.montoPlus
-          ).toFixed(2) || 0,
-        IVAPLUSCOAA:
-          Number(
-            ivaPlusCoaa.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.ivaPlus
-          ).toFixed(2) || 0,
-        ...incluirCantidad.CANTIDAD_COAA,
+
+        // Bloque COAA
+        CANTIDADCOAA: Number(cantidadCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.cantidad).toFixed(2) || 0,
+        MONTOCOAA: Number(montoCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.monto).toFixed(2) || 0,
+        IVACOAA: Number(ivaCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.iva).toFixed(2) || 0,
+        MONTOPLUSCOAA: Number(montoPlusCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus).toFixed(2) || 0,
+        IVAPLUSCOAA: Number(ivaPlusCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus).toFixed(2) || 0,
         TOTALCOAA: Number(
-          (Number(
-            montoCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ) || 0) +
-            (Number(
-              ivaCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-            ) || 0) +
-            (Number(
-              montoPlusCoaa.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.montoPlus
-            ) || 0) +
-            (Number(
-              ivaPlusCoaa.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.ivaPlus
-            ) || 0)
+          (Number(montoCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.monto) || 0) +
+          (Number(ivaCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.iva) || 0) +
+          (Number(montoPlusCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus) || 0) +
+          (Number(ivaPlusCoaa.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus) || 0)
         ).toFixed(2),
-        CANTIDADFACOA:
-          Number(
-            cantidadFacoa.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.cantidad
-          ).toFixed(2) || 0,
-        MONTOFACOA:
-          Number(
-            montoFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ).toFixed(2) || 0,
-        IVAFACOA:
-          Number(
-            ivaFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-          ).toFixed(2) || 0,
-        MONTOPLUSFACOA:
-          Number(
-            montoPlusFacoa.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.montoPlus
-          ).toFixed(2) || 0,
-        IVAPLUSFACOA:
-          Number(
-            ivaPlusFacoa.find((r) => r.interlocutor === interlocutor)?._sum
-              ?.ivaPlus
-          ).toFixed(2) || 0,
-        ...incluirCantidad.CANTIDAD_FACOA,
+
+        // Bloque FACOA
+        CANTIDADFACOA: Number(cantidadFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.cantidad).toFixed(2) || 0,
+        MONTOFACOA: Number(montoFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.monto).toFixed(2) || 0,
+        IVAFACOA: Number(ivaFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.iva).toFixed(2) || 0,
+        MONTOPLUSFACOA: Number(montoPlusFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus).toFixed(2) || 0,
+        IVAPLUSFACOA: Number(ivaPlusFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus).toFixed(2) || 0,
         TOTALFACOA: Number(
-          (Number(
-            montoFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.monto
-          ) || 0) +
-            (Number(
-              ivaFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.iva
-            ) || 0) +
-            (Number(
-              montoPlusFacoa.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.montoPlus
-            ) || 0) +
-            (Number(
-              ivaPlusFacoa.find((r) => r.interlocutor === interlocutor)?._sum
-                ?.ivaPlus
-            ) || 0)
+          (Number(montoFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.monto) || 0) +
+          (Number(ivaFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.iva) || 0) +
+          (Number(montoPlusFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.montoPlus) || 0) +
+          (Number(ivaPlusFacoa.find((r) => r.interlocutor === interlocutor)?._sum?.ivaPlus) || 0)
         ).toFixed(2),
       };
     });

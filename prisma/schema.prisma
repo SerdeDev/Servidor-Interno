@@ -42,8 +42,6 @@ model catastro {
   contrato       BigInt
   telefono1      String?
   telefono2      String?
-
-
 }
 
 model deudaTotal {

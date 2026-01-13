@@ -101,10 +101,11 @@ router.post("/getRecgTotalesOperadoras", async (req, res) => {
 
       const montoTotal = Number(
         Number(rec.monto || 0) +
-          Number(rec.iva || 0) +
-          Number(rec.montoPlus || 0) +
-          Number(rec.ivaPlus || 0)
+        Number(rec.iva || 0) +
+        Number(rec.montoPlus || 0) +
+        Number(rec.ivaPlus || 0)
       );
+
 
       if (producto === "FACTURAS GENERADAS") {
         resultado[nombre].CANTIDAD_FAGE += rec.cantidad || 0;
@@ -120,12 +121,21 @@ router.post("/getRecgTotalesOperadoras", async (req, res) => {
           resultado[nombre].FACO_ASEO += montoTotal;
         if (servicio && servicio.toUpperCase().includes("RELL"))
           resultado[nombre].FACO_RELL += montoTotal;
-      }
 
-      resultado[nombre].TOTAL += montoTotal;
+
+        resultado[nombre].TOTAL += montoTotal;
+      }
     }
 
-    const resumen = Object.values(resultado);
+    // 2. Limpieza final: Redondear todos los acumulados a 2 decimales para evitar residuos de coma flotante
+    const resumen = Object.values(resultado).map(item => ({
+      ...item,
+      FAGE_ASEO: Number(item.FAGE_ASEO.toFixed(2)),
+      FAGE_RELL: Number(item.FAGE_RELL.toFixed(2)),
+      FACO_ASEO: Number(item.FACO_ASEO.toFixed(2)),
+      FACO_RELL: Number(item.FACO_RELL.toFixed(2)),
+      TOTAL: Number(item.TOTAL.toFixed(2))
+    }));
 
     const recgSerializado = JSON.parse(
       JSON.stringify(resumen, (key, value) =>

@@ -33,7 +33,7 @@ router.post("/getCatastro", async (req, res) => {
       !filtrosCatastro.cuentaContrato
     ) {
       // Si no hay interlocutor pero sí estado/municipio/servicio y tampoco cedula/cuentaContrato, buscar en operadoras
-      const operadoras = await prisma.operadoras.findMany({
+      const operadoras = await prisma.operadoras_mod.findMany({
         where: {
           ...(estado && { estado }),
           ...(municipio && { municipio }),
